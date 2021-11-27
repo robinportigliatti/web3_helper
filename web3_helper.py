@@ -4,6 +4,7 @@ from os.path import isfile, join
 from solcx import compile_source
 from web3 import Account, Web3, HTTPProvider
 from web3.exceptions import ContractLogicError
+from web3.gas_strategies.time_based import *
 from web3.middleware import geth_poa_middleware
 import itertools
 import json
@@ -49,6 +50,10 @@ class Web3Helper():
             address=self.contract_address,
             abi=json.loads(contract_information.abi),
         )
+
+        # strategy
+        self.w3.eth.setGasPriceStrategy(construct_time_based_gas_price_strategy(15))
+        self.w3.middleware_onion.inject(geth_poa_middleware, layer=0)
 
     def get_account():
         return Account.from_key(private_key)
@@ -107,8 +112,7 @@ class Web3Helper():
         #tx_hash = contract_definition.constructor().transact()
         gas = contract_definition.constructor().estimateGas()
 
-        prices = Web3Helper.get_gas_price_from_gas_station()
-        gasprice = self.w3.toWei(prices['safeLow'], 'gwei')
+        gasprice = self.w3.eth.generateGasPrice()
         txn_fee = gas * gasprice
         data = contract_definition._encode_constructor_data()
         tr = {
