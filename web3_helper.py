@@ -50,13 +50,13 @@ class Web3Helper():
             address=self.contract_address,
             abi=json.loads(contract_information.abi),
         )
-
         # strategy
         self.w3.eth.setGasPriceStrategy(construct_time_based_gas_price_strategy(15))
         self.w3.middleware_onion.inject(geth_poa_middleware, layer=0)
 
-    def get_account():
-        return Account.from_key(private_key)
+
+    def get_account(self):
+        return Account.from_key(self.private_key)
 
     def calculate_nonce(self):
         return Web3.toHex(self.w3.eth.get_transaction_count(self.account_address))
@@ -79,12 +79,12 @@ class Web3Helper():
 
         data = self.contract.encodeABI(fn_name, args=args)
 
-        gas = self.get_estimate_gas(fn_name, args)
+        gas = getattr(self.contract.functions, fn_name)(*args).estimateGas({'from': self.account_address})
 
-        prices = Web3Helper.get_gas_price_from_gas_station()
-        gasprice = self.w3.toWei(prices['safeLow'], 'gwei')
+        gasprice = self.w3.eth.generateGasPrice()
         txn_fee = gas * gasprice
 
+        print("txn_fee", txn_fee)
         tr = {'to': self.contract.address,
                 'from': from_addr,
                 'value': Web3.toHex(0),
@@ -96,6 +96,7 @@ class Web3Helper():
 
         signed = self.w3.eth.account.sign_transaction(tr, self.private_key)
         tx = self.w3.eth.sendRawTransaction(signed.rawTransaction)
+        print("transaction_receipt", tx)
         tx_receipt = self.w3.eth.waitForTransactionReceipt(tx)
         return tx_receipt
 
@@ -112,8 +113,13 @@ class Web3Helper():
         #tx_hash = contract_definition.constructor().transact()
         gas = contract_definition.constructor().estimateGas()
 
+        #prices = Web3Helper.get_gas_price_from_gas_station()
+        #gasprice = self.w3.toWei(prices['safeLow'], 'gwei')
         gasprice = self.w3.eth.generateGasPrice()
+        print("gas", gas)
+        print("gasprice", gasprice)
         txn_fee = gas * gasprice
+        print("txn_fee", txn_fee)
         data = contract_definition._encode_constructor_data()
         tr = {
                 'from': self.account_address,
