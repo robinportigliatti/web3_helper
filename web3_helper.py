@@ -32,7 +32,7 @@ class Contract():
         self.bytecode, self.abi = contract_interface['bin'], json.dumps(contract_interface['abi'])
 
 class Web3Helper():
-    def __init__(self, contract_information , private_key, provider_url, provider=None):
+    def __init__(self, contract_information , private_key, provider_url, provider, chain_id):
         self.contract_address = contract_information.address
         self.abi = contract_information.abi
         self.bytecode = contract_information.bytecode
@@ -41,10 +41,11 @@ class Web3Helper():
         self.w3 = Web3(HTTPProvider(provider_url))
         if provider == "GANACHE":
             self.account_address = self.w3.eth.accounts[0]
-            print(self.account_address)
         else:
             self.account = self.get_account()
             self.account_address = self.account.address
+            self.chain_id = Web3.toHex(chain_id)
+
         self.w3.eth.defaultAccount = self.account_address
         self.contract = self.w3.eth.contract(
             address=self.contract_address,
@@ -76,6 +77,7 @@ class Web3Helper():
 
     def handle_transaction(self, fn_name, args):
         from_addr = self.account_address
+        contract_definition = self.w3.eth.contract(abi=self.abi, bytecode=self.bytecode)
 
         data = self.contract.encodeABI(fn_name, args=args)
 
@@ -84,19 +86,19 @@ class Web3Helper():
         gasprice = self.w3.eth.generateGasPrice()
         txn_fee = gas * gasprice
 
-        print("txn_fee", txn_fee)
-        tr = {'to': self.contract.address,
-                'from': from_addr,
-                'value': Web3.toHex(0),
-                'gasPrice': Web3.toHex(gasprice),
-                'nonce': self.calculate_nonce(),
-                'data': data,
-                'gas': gas,
-                }
+        tr = {
+            'chainId': self.chain_id,
+            'to': self.contract.address,
+            'from': from_addr,
+            'value': Web3.toHex(0),
+            'gasPrice': Web3.toHex(gasprice),
+            'nonce': self.calculate_nonce(),
+            'data': data,
+            'gas': gas,
+        }
 
         signed = self.w3.eth.account.sign_transaction(tr, self.private_key)
         tx = self.w3.eth.sendRawTransaction(signed.rawTransaction)
-        print("transaction_receipt", tx)
         tx_receipt = self.w3.eth.waitForTransactionReceipt(tx)
         return tx_receipt
 
@@ -107,7 +109,6 @@ class Web3Helper():
         return self.contract.functions.balanceOf(self.account_address).call({'from': self.account_address})
 
     def deploy_smart_contracts(self):
-        print("deploy_smart_contracts", "Begin")
         # # Instantiate and deploy contract
         contract_definition = self.w3.eth.contract(abi=self.abi, bytecode=self.bytecode)
         #tx_hash = contract_definition.constructor().transact()
@@ -116,19 +117,17 @@ class Web3Helper():
         #prices = Web3Helper.get_gas_price_from_gas_station()
         #gasprice = self.w3.toWei(prices['safeLow'], 'gwei')
         gasprice = self.w3.eth.generateGasPrice()
-        print("gas", gas)
-        print("gasprice", gasprice)
         txn_fee = gas * gasprice
-        print("txn_fee", txn_fee)
         data = contract_definition._encode_constructor_data()
         tr = {
-                'from': self.account_address,
-                'value': Web3.toHex(0),
-                'gasPrice': Web3.toHex(gasprice),
-                'nonce': self.calculate_nonce(),
-                'data': data,
-                'gas': gas,
-                }
+            'chainId': self.chain_id, # RPC MUMBAI
+            'from': self.account_address,
+            'value': Web3.toHex(0),
+            'gasPrice': Web3.toHex(gasprice),
+            'nonce': self.calculate_nonce(),
+            'data': data,
+            'gas': gas,
+        }
         signed = self.w3.eth.account.sign_transaction(tr, self.private_key)
         tx_hash = self.w3.eth.send_raw_transaction(signed.rawTransaction)
         ## # Wait for the transaction to be mined, and get the transaction receipt
@@ -138,6 +137,5 @@ class Web3Helper():
             address=self.contract_address,
             abi=self.abi,
         )
-        print("Smart contract created", self.contract_address)
 
         return self.contract_address

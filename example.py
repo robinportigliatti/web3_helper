@@ -1,6 +1,22 @@
 from web3_helper import Web3Helper, Contract
 from pathlib import Path
 
+# Networks
+NETWORKS = {
+    "RINKEBY": {
+        "CHAIN_ID": 4,
+    },
+    "MUMBAI": {
+        "CHAIN_ID": 80001,
+    },
+    "MATIC": {
+        "CHAIN_ID": 137,
+    },
+    "GANACHE": {
+        "CHAIN_ID": "*",
+    },
+}
+
 class CollectionContract(Web3Helper):
     def claim_nft(self, token_uri):
         self.handle_transaction("claimItem", [token_uri])
@@ -19,7 +35,8 @@ def generate():
         contract_information=contract_information,
         private_key="",
         provider_url="http://ganache:8545",
-        provider= "GANACHE"
+        provider= "GANACHE",
+        # chain_id="4" # Only used when provider != GANACHE
     )
     MyHelper.deploy_smart_contracts()
     print("contact_address:", MyHelper.contract_address)
