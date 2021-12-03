@@ -36,7 +36,7 @@ def generate():
         private_key="",
         provider_url="http://ganache:8545",
         provider= "GANACHE",
-        # chain_id="4" # Only used when provider != GANACHE
+        # chain_id=NETWORKS["RINKEBY"]["CHAIN_ID"] # Only used when provider != GANACHE
     )
     MyHelper.deploy_smart_contracts()
     print("contact_address:", MyHelper.contract_address)
