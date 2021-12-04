@@ -30,6 +30,8 @@ def generate():
         address="", # will be updated after the contract has been deployed, don't forget to save it
         abi="", # only used after the contract has been deployed, abi will be updated after the deploy_smart_contracts call, don't forget to save it
         source_code=source_code, # only used for the deployment
+        name="Web3Helper",
+        symbol="W3H",
     )
     MyHelper = CollectionContract(
         contract_information=contract_information,

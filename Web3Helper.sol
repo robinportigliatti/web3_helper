@@ -13,7 +13,19 @@ contract Web3Helper is Ownable, ERC721 {
 
     string private _baseURIextended;
 
-    constructor() ERC721("Web3Helper", "W3H") {}
+    string private _contractURI;
+
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) {
+
+    }
+
+    function setContractURI(string memory contractURI_) external onlyOwner {
+        _contractURI = contractURI_;
+    }
+
+    function contractURI() public view returns (string memory) {
+        return _contractURI;
+    }
 
     function setBaseURI(string memory baseURI_) external onlyOwner {
         _baseURIextended = baseURI_;

@@ -15,14 +15,15 @@ import sys
 import time
 
 class Contract():
-    def __init__(self, address, abi=None, source_code=None):
+    def __init__(self, address, name, symbol, abi=None, source_code=None):
         self.address = address
         self.abi = abi
         self.bytecode = None
         if source_code is not None:
             self.source_code = source_code
             self.init_abi_and_bin_from_source_code()
-
+        self.name = name
+        self.symbol = symbol
     def init_abi_and_bin_from_source_code(self):
         compiled_sol = compile_source(
             self.source_code,
@@ -54,7 +55,8 @@ class Web3Helper():
         # strategy
         self.w3.eth.setGasPriceStrategy(construct_time_based_gas_price_strategy(15))
         self.w3.middleware_onion.inject(geth_poa_middleware, layer=0)
-
+        self.name = contract_information.name
+        self.symbol = contract_information.symbol
 
     def get_account(self):
         return Account.from_key(self.private_key)
@@ -112,13 +114,16 @@ class Web3Helper():
         # # Instantiate and deploy contract
         contract_definition = self.w3.eth.contract(abi=self.abi, bytecode=self.bytecode)
         #tx_hash = contract_definition.constructor().transact()
-        gas = contract_definition.constructor().estimateGas()
+        name = self.name
+        symbol = self.symbol
+        args = [name, symbol]
+        gas = contract_definition.constructor(name, symbol).estimateGas()
 
         #prices = Web3Helper.get_gas_price_from_gas_station()
         #gasprice = self.w3.toWei(prices['safeLow'], 'gwei')
         gasprice = self.w3.eth.generateGasPrice()
         txn_fee = gas * gasprice
-        data = contract_definition._encode_constructor_data()
+        data = contract_definition._encode_constructor_data(args=[name, symbol])
         tr = {
             'chainId': self.chain_id, # RPC MUMBAI
             'from': self.account_address,
